@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grant's Power Cube — Draft Analytics</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #09090e;
+    --surface: #101016;
+    --surface2: #17171f;
+    --border: #252533;
+    --accent: #d4a843;
+    --accent2: #8b6ed4;
+    --accent3: #3dbfb8;
+    --danger: #e05555;
+    --good: #4dd675;
+    --text: #e5e0d4;
+    --muted: #636075;
+    --pip-W: #f2e8c8; --pip-U: #7ab2f5; --pip-B: #b89fd4;
+    --pip-R: #f2845a; --pip-G: #72c47e; --pip-M: #e8c45a;
+    --pip-A: #b8b5b0; --pip-L: #c8a070; --pip-C: #888;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: linear-gradient(rgba(212,168,67,.025) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(212,168,67,.025) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 48px 28px 100px; }
+
+  .hdr { text-align: center; margin-bottom: 56px; }
+  .hdr-eye { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 5px; color: var(--accent); text-transform: uppercase; margin-bottom: 14px; }
+  .hdr h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(52px, 9vw, 108px); letter-spacing: 4px; line-height: 1;
+    background: linear-gradient(140deg, #a07820 0%, #f0d070 40%, #fff5d0 60%, #d4a843 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hdr-sub { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; margin-top: 8px; letter-spacing: 1px; }
+  .hdr-rule { width: 100px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); margin: 22px auto 0; }
+
+  .live-badge { display: flex; align-items: center; gap: 10px; background: rgba(212,168,67,.07); border: 1px solid rgba(212,168,67,.2); border-radius: 6px; padding: 10px 18px; margin-bottom: 36px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); }
+  .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--accent3); animation: blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+  .pills { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 52px; }
+  .pill { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 7px 15px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+
+  .sec { margin-bottom: 60px; }
+  .sec-hdr { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 24px; }
+  .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 2px; color: var(--accent); }
+  .sec-desc { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  .lb { display: flex; flex-direction: column; gap: 7px; }
+  .lb-row { display: grid; grid-template-columns: 48px 1fr 110px 130px 130px 160px; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 22px; transition: border-color .2s, transform .15s; cursor: default; }
+  .lb-row:hover { border-color: var(--accent2); transform: translateX(3px); }
+  .lb-row.r1 { border-color: var(--accent); background: linear-gradient(120deg, #1c1404 0%, var(--surface) 60%); }
+  .lb-row.r2 { border-color: #777; }
+  .lb-row.r3 { border-color: #b06030; }
+  .lb-rank { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--muted); text-align: center; }
+  .r1 .lb-rank { color: var(--accent); } .r2 .lb-rank { color: #aaa; } .r3 .lb-rank { color: #c07040; }
+  .lb-name { font-weight: 600; font-size: 15px; text-transform: capitalize; }
+  .lb-subtext { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .lb-stat { text-align: right; }
+  .lb-stat .v { font-family: 'Space Mono', monospace; font-size: 14px; color: var(--accent); }
+  .lb-stat .l { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; }
+  .bar-bg { height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; }
+  .bar-fg { height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+
+  .insights-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
+  .insight { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 22px; transition: border-color .2s; }
+  .insight:hover { border-color: var(--accent2); }
+  .ins-icon { font-size: 26px; margin-bottom: 10px; }
+  .ins-lbl { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .ins-val { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1px; color: var(--accent); margin-bottom: 5px; line-height: 1; }
+  .ins-detail { font-size: 12px; color: var(--muted); line-height: 1.55; }
+  .ins-detail strong { color: var(--text); }
+
+  .tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 20px; }
+  .tab { padding: 8px 18px; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px; cursor: pointer; transition: all .18s; }
+  .tab:hover { border-color: var(--accent); color: var(--text); }
+  .tab.on { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); text-align: left; padding: 9px 13px; border-bottom: 1px solid var(--border); }
+  .tbl td { padding: 10px 13px; font-size: 13px; border-bottom: 1px solid rgba(37,37,51,.6); vertical-align: middle; }
+  .tbl tr:hover td { background: var(--surface2); }
+  .mono { font-family: 'Space Mono', monospace; font-size: 11px; }
+  .cap { text-transform: capitalize; }
+  .pos { color: var(--good); } .neg { color: var(--danger); }
+  .round-badge { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent3); padding: 2px 6px; }
+
+  .pip { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
+  .pip-W { background: var(--pip-W); } .pip-U { background: var(--pip-U); } .pip-B { background: var(--pip-B); }
+  .pip-R { background: var(--pip-R); } .pip-G { background: var(--pip-G); } .pip-M { background: var(--pip-M); }
+  .pip-A { background: var(--pip-A); } .pip-L { background: var(--pip-L); } .pip-C { background: var(--pip-C); }
+
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 20px; }
+  .pcard { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 22px; transition: border-color .2s; }
+  .pcard:hover { border-color: var(--accent2); }
+  .pc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+  .pc-name { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 1px; text-transform: capitalize; }
+  .pc-avg { text-align: right; }
+  .pc-avg .big { font-family: 'Space Mono', monospace; font-size: 19px; color: var(--accent); display: block; }
+  .pc-avg .lbl { font-size: 9px; color: var(--muted); font-family: 'Space Mono', monospace; letter-spacing: 1px; }
+  .pc-picks { display: flex; flex-direction: column; gap: 3px; }
+  .pr { display: flex; align-items: center; gap: 7px; padding: 5px 8px; border-radius: 4px; font-size: 12px; border-left: 2px solid transparent; transition: background .15s; }
+  .pr:hover { background: var(--surface2); }
+  .pr-num { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--muted); width: 22px; flex-shrink: 0; }
+  .pr-card { flex: 1; }
+  .pr-elo { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); }
+  .badge { font-size: 8px; padding: 1px 5px; border-radius: 2px; font-family: 'Space Mono', monospace; letter-spacing: .5px; flex-shrink: 0; white-space: nowrap; }
+  .b-pow { background: rgba(212,168,67,.15); color: var(--accent); border: 1px solid rgba(212,168,67,.3); }
+  .b-val { background: rgba(77,214,117,.12); color: var(--good); border: 1px solid rgba(77,214,117,.3); }
+  .b-rch { background: rgba(224,85,85,.12); color: var(--danger); border: 1px solid rgba(224,85,85,.3); }
+  .b-sol { background: rgba(61,191,184,.12); color: var(--accent3); border: 1px solid rgba(61,191,184,.3); }
+  .colorbar { display: flex; height: 4px; border-radius: 2px; overflow: hidden; margin-top: 14px; }
+  .cseg { height: 100%; }
+  .pc-footer { display: flex; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .pc-stat { flex: 1; text-align: center; }
+  .pc-stat .sv { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text); }
+  .pc-stat .sl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  .chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; overflow-x: auto; }
+  svg.curve text { font-family: 'Space Mono', monospace; font-size: 9px; fill: var(--muted); }
+
+  @media (max-width: 680px) {
+    .lb-row { grid-template-columns: 36px 1fr 90px; }
+    .lb-row > *:nth-child(n+4) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hdr">
+    <div class="hdr-eye">Rotisserie Draft · CubeCobra ELO Analysis</div>
+    <h1>Power Cube Draft</h1>
+    <div class="hdr-sub">Grant's Power Cube &nbsp;·&nbsp; 8 Players &nbsp;·&nbsp; Real CubeCobra ELO Ratings</div>
+    <div class="hdr-rule"></div>
+  </div>
+
+  <div class="live-badge">
+    <div class="pulse"></div>
+    DRAFT IN PROGRESS — 12 rounds complete. All ELO ratings sourced directly from your cube's CubeCobra JSON export.
+  </div>
+
+  <div class="pills">
+    <div class="pill">📋 12 ROUNDS COMPLETE</div>
+    <div class="pill">👥 8 PLAYERS</div>
+    <div class="pill">🃏 95 CARDS DRAFTED</div>
+    <div class="pill">⚡ ELO: CUBECOBRA LIVE DATA</div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-title">Draft Leaderboard</div><div class="sec-desc">Ranked by average ELO across all picks</div></div>
+    <div class="lb" id="lb"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-title">ELO Curve by Round</div><div class="sec-desc">Average ELO taken each round across all 8 players</div></div>
+    <div class="chart-wrap" id="curve"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-title">Key Insights</div><div class="sec-desc">Standout moments and statistics</div></div>
+    <div class="insights-grid" id="insights"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-title">Pick Analysis</div><div class="sec-desc">Delta = pick ELO minus round average ELO</div></div>
+    <div class="tabs">
+      <button class="tab on" onclick="showTab('values',this)">🏆 Best Value Picks</button>
+      <button class="tab" onclick="showTab('reaches',this)">📉 Worst Reaches</button>
+      <button class="tab" onclick="showTab('gems',this)">💎 Late Steals</button>
+      <button class="tab" onclick="showTab('rounds',this)">🔥 Round-by-Round</button>
+    </div>
+    <div id="tab-panel"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-title">Player Breakdowns</div><div class="sec-desc">Every pick with ELO, delta badge, and color bar</div></div>
+    <div class="pgrid" id="pgrid"></div>
+  </div>
+
+</div>
+<script>
+const CARDS = {
+  "Ancestral Recall":      { elo: 2247.75, color: "U" },
+  "Ancient Tomb":          { elo: 1615.87, color: "L" },
+  "Arid Mesa":             { elo: 1674.08, color: "L" },
+  "Badgermole Cub":        { elo: 1406.43, color: "G" },
+  "Balance":               { elo: 1466.33, color: "W" },
+  "Bayou":                 { elo: 1396.27, color: "L" },
+  "Black Lotus":           { elo: 2402.84, color: "A" },
+  "Brain Freeze":          { elo: 1570.57, color: "U" },
+  "Brainstorm":            { elo: 1526.92, color: "U" },
+  "Broadside Bombardiers": { elo: 1741.20, color: "R" },
+  "Chrome Mox":            { elo: 1658.79, color: "A" },
+  "Counterspell":          { elo: 1639.54, color: "U" },
+  "Crucible of Worlds":    { elo: 1320.63, color: "A" },
+  "Cryptic Command":       { elo: 1414.24, color: "U" },
+  "Daze":                  { elo: 1488.09, color: "U" },
+  "Deathrite Shaman":      { elo: 1450.18, color: "M" },
+  "Dig Through Time":      { elo: 1369.25, color: "U" },
+  "Displacer Kitten":      { elo: 1461.06, color: "U" },
+  "Fable of the Mirror-Breaker": { elo: 1717.09, color: "R" },
+  "Flash":                 { elo: 1677.99, color: "U" },
+  "Flooded Strand":        { elo: 1698.44, color: "L" },
+  "Force of Negation":     { elo: 1643.61, color: "U" },
+  "Force of Will":         { elo: 1814.27, color: "U" },
+  "Forensic Gadgeteer":    { elo: 1395.50, color: "U" },
+  "Forth Eorlingas!":      { elo: 1762.87, color: "M" },
+  "Fractured Identity":    { elo: 1565.19, color: "M" },
+  "Gitaxian Probe":        { elo: 1571.25, color: "U" },
+  "Gleemox":               { elo: 2379.22, color: "A" },
+  "Golos, Tireless Pilgrim":{ elo: 1294.15, color: "A" },
+  "Grim Monolith":         { elo: 1672.00, color: "A" },
+  "Hullbreacher":          { elo: 1746.27, color: "U" },
+  "Ignoble Hierarch":      { elo: 1492.10, color: "M" },
+  "Kappa Cannoneer":       { elo: 1453.21, color: "A" },
+  "Karakas":               { elo: 1743.43, color: "L" },
+  "Keen-Eyed Curator":     { elo: 1186.16, color: "W" },
+  "Leovold, Emissary of Trest": { elo: 1300.69, color: "M" },
+  "Library of Alexandria": { elo: 1719.85, color: "L" },
+  "Lion's Eye Diamond":    { elo: 1647.55, color: "A" },
+  "Lotus Petal":           { elo: 1613.76, color: "A" },
+  "Lurrus of the Dream-Den":{ elo: 1455.28, color: "M" },
+  "Mana Crypt":            { elo: 2162.84, color: "A" },
+  "Mana Drain":            { elo: 1848.67, color: "U" },
+  "Marsh Flats":           { elo: 1683.11, color: "L" },
+  "Minsc & Boo, Timeless Heroes": { elo: 1770.19, color: "M" },
+  "Mishra's Workshop":     { elo: 1520.61, color: "L" },
+  "Misty Rainforest":      { elo: 1692.46, color: "L" },
+  "Mox Diamond":           { elo: 1830.57, color: "A" },
+  "Mox Emerald":           { elo: 2097.89, color: "A" },
+  "Mox Jet":               { elo: 2161.53, color: "A" },
+  "Mox Pearl":             { elo: 2149.84, color: "A" },
+  "Mox Ruby":              { elo: 2160.60, color: "A" },
+  "Mox Sapphire":          { elo: 2203.29, color: "A" },
+  "Narset, Parter of Veils":{ elo: 1488.27, color: "U" },
+  "Noble Hierarch":        { elo: 1535.02, color: "G" },
+  "Once Upon a Time":      { elo: 1439.27, color: "G" },
+  "Orcish Bowmasters":     { elo: 1845.04, color: "R" },
+  "Orcish Lumberjack":     { elo: 1242.94, color: "R" },
+  "Pestermite":            { elo: 1317.30, color: "U" },
+  "Polluted Delta":        { elo: 1737.09, color: "L" },
+  "Primeval Titan":        { elo: 1422.40, color: "G" },
+  "Psychic frog":          { elo: 1704.11, color: "M" },
+  "Reanimate":             { elo: 1676.66, color: "B" },
+  "Scalding Tarn":         { elo: 1728.35, color: "L" },
+  "Simian Spirit Guide":   { elo: 1314.08, color: "R" },
+  "Snapcaster Mage":       { elo: 1597.67, color: "U" },
+  "Sol Ring":              { elo: 2211.33, color: "A" },
+  "Spell Pierce":          { elo: 1512.26, color: "U" },
+  "Splinter Twin":         { elo: 1411.14, color: "R" },
+  "Stock Up":              { elo: 1671.47, color: "U" },
+  "Strip Mine":            { elo: 1779.47, color: "L" },
+  "Swords to Plowshares":  { elo: 1717.40, color: "W" },
+  "Taiga":                 { elo: 1445.82, color: "L" },
+  "Talisman of Curiosity": { elo: 1332.73, color: "A" },
+  "Teferi, Time Raveler":  { elo: 1565.32, color: "M" },
+  "Tendrils of Agony":     { elo: 1282.36, color: "B" },
+  "The One Ring":          { elo: 1973.53, color: "A" },
+  "Thoughtseize":          { elo: 1723.38, color: "B" },
+  "Time Walk":             { elo: 2266.89, color: "U" },
+  "Time Warp":             { elo: 1435.53, color: "U" },
+  "Timetwister":           { elo: 1771.42, color: "U" },
+  "Tinker":                { elo: 1687.25, color: "U" },
+  "Tolarian Academy":      { elo: 1767.86, color: "L" },
+  "Treasure Cruise":       { elo: 1440.52, color: "U" },
+  "Underground Sea":       { elo: 1609.61, color: "L" },
+  "Underworld Breach":     { elo: 1584.02, color: "R" },
+  "Uro, Titan of Nature's Wrath": { elo: 1494.22, color: "M" },
+  "Urza's Saga":           { elo: 1669.98, color: "L" },
+  "Urza, Lord High Artificer": { elo: 1681.43, color: "U" },
+  "Verdant Catacombs":     { elo: 1670.00, color: "L" },
+  "Vivi Ornitier":         { elo: 1543.85, color: "R" },
+  "Voice of Victory":      { elo: 1466.42, color: "W" },
+  "Wheel of Fortune":      { elo: 1649.60, color: "R" },
+  "Windswept Heath":       { elo: 1614.61, color: "L" },
+  "Wooded Foothills":      { elo: 1672.01, color: "L" },
+  "Wrenn and Six":         { elo: 1453.71, color: "M" },
+};
+
+const DRAFT = {
+  harry:  ["Sol Ring","Grim Monolith","Talisman of Curiosity","Hullbreacher","Uro, Titan of Nature's Wrath","Snapcaster Mage","Time Warp","Leovold, Emissary of Trest","Tendrils of Agony","Primeval Titan","Bayou",null],
+  austin: ["Mox Sapphire","Tinker","Mana Drain","Urza's Saga","Urza, Lord High Artificer","Chrome Mox","Lotus Petal","Polluted Delta","Scalding Tarn","Brainstorm","Stock Up","Gitaxian Probe"],
+  throop: ["Black Lotus","The One Ring","Strip Mine","Mishra's Workshop","Crucible of Worlds","Golos, Tireless Pilgrim","Library of Alexandria","Deathrite Shaman","Verdant Catacombs","Windswept Heath","Wrenn and Six","Once Upon a Time"],
+  tyler:  ["Gleemox","Force of Will","Force of Negation","Flash","Cryptic Command","Thoughtseize","Daze","Counterspell","Misty Rainforest","Reanimate","Psychic frog","Treasure Cruise"],
+  riggs:  ["Mox Jet","Tolarian Academy","Lurrus of the Dream-Den","Forth Eorlingas!","Karakas","Balance","Swords to Plowshares","Orcish Bowmasters","Marsh Flats","Underground Sea","Fractured Identity","Mox Diamond"],
+  drew:   ["Time Walk","Mana Crypt","Splinter Twin","Pestermite","Vivi Ornitier","Spell Pierce","Narset, Parter of Veils","Wheel of Fortune","Flooded Strand","Voice of Victory","Dig Through Time","Fable of the Mirror-Breaker"],
+  grant:  ["Ancestral Recall","Mox Pearl","Lion's Eye Diamond","Displacer Kitten","Teferi, Time Raveler","Kappa Cannoneer","Timetwister","Forensic Gadgeteer","Underworld Breach","Brain Freeze","Broadside Bombardiers","Arid Mesa"],
+  kevin:  ["Mox Emerald","Mox Ruby","Ignoble Hierarch","Ancient Tomb","Noble Hierarch","Minsc & Boo, Timeless Heroes","Taiga","Wooded Foothills","Badgermole Cub","Keen-Eyed Curator","Simian Spirit Guide","Orcish Lumberjack"],
+};
+
+const CCSS = { W:"var(--pip-W)",U:"var(--pip-U)",B:"var(--pip-B)",R:"var(--pip-R)",G:"var(--pip-G)",M:"var(--pip-M)",A:"var(--pip-A)",L:"var(--pip-L)",C:"var(--pip-C)" };
+
+function getElo(c) { return CARDS[c]?.elo ?? 1200; }
+function getColor(c) { return CARDS[c]?.color ?? "C"; }
+
+const players = Object.keys(DRAFT);
+const NR = 12;
+const roundAvgs = Array.from({length:NR},(_,r)=>{
+  const vs = players.map(p=>DRAFT[p][r]).filter(Boolean).map(getElo);
+  return vs.reduce((a,b)=>a+b,0)/vs.length;
+});
+
+function computeStats() {
+  return players.map(name => {
+    const raw = DRAFT[name];
+    const picks = raw.filter(Boolean);
+    const ev = picks.map(getElo);
+    const avg = ev.reduce((a,b)=>a+b,0)/ev.length;
+    const total = ev.reduce((a,b)=>a+b,0);
+    const peak = Math.max(...ev);
+    const peakCard = picks[ev.indexOf(peak)];
+    const stdDev = Math.sqrt(ev.map(e=>(e-avg)**2).reduce((a,b)=>a+b,0)/ev.length);
+    const pickDetails = picks.map((card,i)=>({ card, round:i+1, elo:getElo(card), roundAvg:roundAvgs[i], delta:getElo(card)-roundAvgs[i] }));
+    const colorCount = {};
+    picks.forEach(c=>{ const cl=getColor(c); colorCount[cl]=(colorCount[cl]||0)+1; });
+    return { name, picks, ev, avg, total, peak, peakCard, stdDev, pickDetails, colorCount };
+  });
+}
+
+const stats = computeStats().sort((a,b)=>b.avg-a.avg);
+const maxAvg = stats[0].avg;
+
+// ── LEADERBOARD ──
+function renderLB() {
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('lb').innerHTML = stats.map((s,i)=>{
+    const rc = i===0?'r1':i===1?'r2':i===2?'r3':'';
+    const bw = (s.avg/maxAvg*100).toFixed(1);
+    const cv = (s.stdDev/s.avg*100).toFixed(1);
+    return `<div class="lb-row ${rc}">
+      <div class="lb-rank">${i<3?medals[i]:i+1}</div>
+      <div><div class="lb-name">${s.name}</div><div class="lb-subtext">Peak: ${s.peakCard} (${s.peak.toFixed(0)})</div></div>
+      <div class="lb-stat"><div class="v">${s.avg.toFixed(1)}</div><div class="l">avg elo</div><div class="bar-bg"><div class="bar-fg" style="width:${bw}%"></div></div></div>
+      <div class="lb-stat"><div class="v">${s.peak.toFixed(0)}</div><div class="l">peak pick</div></div>
+      <div class="lb-stat"><div class="v">${s.total.toFixed(0)}</div><div class="l">pool total</div></div>
+      <div class="lb-stat"><div class="v">${cv}%</div><div class="l">CV (consistency)</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── CURVE CHART ──
+function renderCurve() {
+  const W=900,H=200,PL=52,PR=20,PT=20,PB=40,cW=W-PL-PR,cH=H-PT-PB;
+  const minE=Math.min(...roundAvgs)-60, maxE=Math.max(...roundAvgs)+60;
+  const xS=i=>PL+(i/(NR-1))*cW, yS=v=>PT+cH-((v-minE)/(maxE-minE))*cH;
+  const pts=roundAvgs.map((v,i)=>`${xS(i)},${yS(v)}`).join(' ');
+  const area=`M${xS(0)},${yS(roundAvgs[0])} `+roundAvgs.map((v,i)=>`L${xS(i)},${yS(v)}`).join(' ')+` L${xS(NR-1)},${PT+cH} L${xS(0)},${PT+cH} Z`;
+  const grid=[0,.25,.5,.75,1].map(t=>{const v=minE+t*(maxE-minE),y=yS(v);return `<line stroke="var(--border)" stroke-dasharray="3,3" x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}"/><text x="${PL-6}" y="${y+3}" text-anchor="end" font-family="Space Mono,monospace" font-size="9" fill="var(--muted)">${v.toFixed(0)}</text>`;}).join('');
+  const xlbl=roundAvgs.map((_,i)=>`<text x="${xS(i)}" y="${H-6}" text-anchor="middle" font-family="Space Mono,monospace" font-size="9" fill="var(--muted)">R${i+1}</text>`).join('');
+  const dots=roundAvgs.map((v,i)=>{const hot=v===Math.max(...roundAvgs),cold=v===Math.min(...roundAvgs);return `<circle cx="${xS(i)}" cy="${yS(v)}" r="${hot||cold?5:3}" fill="${hot?'var(--accent)':cold?'var(--danger)':'var(--accent3)'}" stroke="var(--bg)" stroke-width="2"><title>R${i+1}: ${v.toFixed(1)} avg ELO</title></circle>`;}).join('');
+  document.getElementById('curve').innerHTML=`<svg class="curve" viewBox="0 0 ${W} ${H}" style="width:100%;min-width:580px"><defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity=".3"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>${grid}<line stroke="var(--border)" x1="${PL}" y1="${PT}" x2="${PL}" y2="${PT+cH}"/><line stroke="var(--border)" x1="${PL}" y1="${PT+cH}" x2="${W-PR}" y2="${PT+cH}"/><path d="${area}" fill="url(#cg)"/><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>${dots}${xlbl}</svg>`;
+}
+
+// ── INSIGHTS ──
+function renderInsights() {
+  const all=[];stats.forEach(s=>s.pickDetails.forEach(p=>all.push({...p,player:s.name})));
+  const bestPick=all.reduce((b,p)=>p.elo>b.elo?p:b,all[0]);
+  const bestVal=all.reduce((b,p)=>p.delta>b.delta?p:b,all[0]);
+  const worstRch=all.reduce((w,p)=>p.delta<w.delta?p:w,all[0]);
+  const mostCons=[...stats].sort((a,b)=>a.stdDev/a.avg-b.stdDev/b.avg)[0];
+  const leastCons=[...stats].sort((a,b)=>b.stdDev/b.avg-a.stdDev/a.avg)[0];
+  const hotR=roundAvgs.indexOf(Math.max(...roundAvgs))+1;
+  const coldR=roundAvgs.indexOf(Math.min(...roundAvgs))+1;
+  const gap=(stats[0].avg-stats[stats.length-1].avg).toFixed(1);
+  document.getElementById('insights').innerHTML=`
+    <div class="insight"><div class="ins-icon">👑</div><div class="ins-lbl">Highest Single Pick</div><div class="ins-val">${bestPick.elo.toFixed(0)}</div><div class="ins-detail"><strong>${bestPick.card}</strong> — taken by <strong>${bestPick.player}</strong> in Round ${bestPick.round}</div></div>
+    <div class="insight"><div class="ins-icon">💎</div><div class="ins-lbl">Best Value Pick</div><div class="ins-val">+${bestVal.delta.toFixed(0)}</div><div class="ins-detail"><strong>${bestVal.card}</strong> by <strong>${bestVal.player}</strong> (R${bestVal.round})<br>${bestVal.elo.toFixed(0)} ELO vs ${bestVal.roundAvg.toFixed(0)} round avg</div></div>
+    <div class="insight"><div class="ins-icon">😬</div><div class="ins-lbl">Biggest Reach</div><div class="ins-val">${worstRch.delta.toFixed(0)}</div><div class="ins-detail"><strong>${worstRch.card}</strong> by <strong>${worstRch.player}</strong> (R${worstRch.round})<br>${worstRch.elo.toFixed(0)} ELO vs ${worstRch.roundAvg.toFixed(0)} round avg</div></div>
+    <div class="insight"><div class="ins-icon">🎯</div><div class="ins-lbl">Most Consistent</div><div class="ins-val">${mostCons.name.toUpperCase()}</div><div class="ins-detail">Lowest pick variance — σ=${mostCons.stdDev.toFixed(0)}, CV=${(mostCons.stdDev/mostCons.avg*100).toFixed(1)}%</div></div>
+    <div class="insight"><div class="ins-icon">🎲</div><div class="ins-lbl">Wildest Pool</div><div class="ins-val">${leastCons.name.toUpperCase()}</div><div class="ins-detail">Highest variance — σ=${leastCons.stdDev.toFixed(0)}, CV=${(leastCons.stdDev/leastCons.avg*100).toFixed(1)}%<br>Big peaks, wide floor</div></div>
+    <div class="insight"><div class="ins-icon">🔥</div><div class="ins-lbl">Hottest Round</div><div class="ins-val">Round ${hotR}</div><div class="ins-detail">Avg ELO of <strong>${roundAvgs[hotR-1].toFixed(0)}</strong> — most power concentrated in a single round</div></div>
+    <div class="insight"><div class="ins-icon">🧊</div><div class="ins-lbl">Coldest Round</div><div class="ins-val">Round ${coldR}</div><div class="ins-detail">Avg ELO of <strong>${roundAvgs[coldR-1].toFixed(0)}</strong> — weakest round of picks</div></div>
+    <div class="insight"><div class="ins-icon">📊</div><div class="ins-lbl">Leader Gap</div><div class="ins-val">${gap}</div><div class="ins-detail">Avg ELO spread: <strong>${stats[0].name}</strong> (${stats[0].avg.toFixed(0)}) vs <strong>${stats[stats.length-1].name}</strong> (${stats[stats.length-1].avg.toFixed(0)})</div></div>`;
+}
+
+// ── TABS ──
+let activeTab='values';
+function showTab(tab,btn){
+  activeTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  renderTab();
+}
+function pip(card){return `<span class="pip pip-${getColor(card)}"></span>`;}
+function renderTab(){
+  const all=[];stats.forEach(s=>s.pickDetails.forEach(p=>all.push({...p,player:s.name})));
+  let h=`<table class="tbl"><thead><tr>`;
+  if(activeTab==='values'){
+    h+=`<th>#</th><th>Card</th><th>Player</th><th>Round</th><th>ELO</th><th>Round Avg</th><th>Delta</th></tr></thead><tbody>`;
+    all.sort((a,b)=>b.delta-a.delta).slice(0,15).forEach((p,i)=>{h+=`<tr><td class="mono" style="color:var(--muted)">${i+1}</td><td>${pip(p.card)}${p.card}</td><td class="cap" style="color:var(--muted);font-size:12px">${p.player}</td><td><span class="round-badge">R${p.round}</span></td><td class="mono">${p.elo.toFixed(0)}</td><td class="mono" style="color:var(--muted)">${p.roundAvg.toFixed(0)}</td><td class="mono pos">+${p.delta.toFixed(0)}</td></tr>`;});
+  } else if(activeTab==='reaches'){
+    h+=`<th>#</th><th>Card</th><th>Player</th><th>Round</th><th>ELO</th><th>Round Avg</th><th>Delta</th></tr></thead><tbody>`;
+    all.sort((a,b)=>a.delta-b.delta).slice(0,15).forEach((p,i)=>{h+=`<tr><td class="mono" style="color:var(--muted)">${i+1}</td><td>${pip(p.card)}${p.card}</td><td class="cap" style="color:var(--muted);font-size:12px">${p.player}</td><td><span class="round-badge">R${p.round}</span></td><td class="mono">${p.elo.toFixed(0)}</td><td class="mono" style="color:var(--muted)">${p.roundAvg.toFixed(0)}</td><td class="mono neg">${p.delta.toFixed(0)}</td></tr>`;});
+  } else if(activeTab==='gems'){
+    h+=`<th>#</th><th>Card</th><th>Player</th><th>Round</th><th>ELO</th><th>Delta</th><th>Tag</th></tr></thead><tbody>`;
+    all.filter(p=>p.round>=6&&p.delta>0).sort((a,b)=>b.delta-a.delta).slice(0,15).forEach((p,i)=>{
+      const tag=p.delta>200?'🔥 Steal':p.delta>80?'💎 Value':'✓ Solid';
+      h+=`<tr><td class="mono" style="color:var(--muted)">${i+1}</td><td>${pip(p.card)}${p.card}</td><td class="cap" style="color:var(--muted);font-size:12px">${p.player}</td><td><span class="round-badge">R${p.round}</span></td><td class="mono">${p.elo.toFixed(0)}</td><td class="mono pos">+${p.delta.toFixed(0)}</td><td style="font-size:12px">${tag}</td></tr>`;
+    });
+  } else {
+    h+=`<th>Round</th><th>Avg ELO</th><th>Spread σ</th><th>Top Pick</th><th>By</th><th>Lowest Pick</th><th>By</th></tr></thead><tbody>`;
+    for(let r=0;r<NR;r++){
+      const rp=Object.entries(DRAFT).map(([n,ps])=>({name:n,card:ps[r]})).filter(p=>p.card);
+      const ev=rp.map(p=>getElo(p.card));
+      const avg=ev.reduce((a,b)=>a+b,0)/ev.length;
+      const std=Math.sqrt(ev.map(e=>(e-avg)**2).reduce((a,b)=>a+b,0)/ev.length);
+      const top=rp.reduce((h,p)=>getElo(p.card)>getElo(h.card)?p:h,rp[0]);
+      const bot=rp.reduce((l,p)=>getElo(p.card)<getElo(l.card)?p:l,rp[0]);
+      const hot=avg===Math.max(...roundAvgs);
+      h+=`<tr style="${hot?'background:rgba(212,168,67,.06)':''}"><td><span class="round-badge">Round ${r+1}</span></td><td class="mono" style="color:var(--accent)">${avg.toFixed(0)}</td><td class="mono" style="color:var(--muted)">${std.toFixed(0)}</td><td>${pip(top.card)}${top.card}</td><td class="cap" style="color:var(--muted);font-size:12px">${top.name}</td><td>${pip(bot.card)}${bot.card}</td><td class="cap" style="color:var(--muted);font-size:12px">${bot.name}</td></tr>`;
+    }
+  }
+  h+=`</tbody></table>`;
+  document.getElementById('tab-panel').innerHTML=h;
+}
+
+// ── PLAYER CARDS ──
+function renderPlayerCards(){
+  const co=['U','W','B','R','G','M','A','L'];
+  document.getElementById('pgrid').innerHTML=[...stats].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>{
+    const t=s.picks.length;
+    const bar=co.map(c=>{const cnt=s.colorCount[c]||0;return cnt?`<div class="cseg" style="width:${(cnt/t*100).toFixed(1)}%;background:${CCSS[c]}" title="${c}:${cnt}"></div>`:''}).join('');
+    const rows=s.pickDetails.map(p=>{
+      const cl=getColor(p.card);
+      const badge=p.delta>200?`<span class="badge b-val">VALUE</span>`:p.delta<-200?`<span class="badge b-rch">REACH</span>`:p.elo>1800?`<span class="badge b-pow">POWER</span>`:`<span class="badge b-sol">SOLID</span>`;
+      return `<div class="pr" style="border-left-color:${CCSS[cl]}"><span class="pr-num">R${p.round}</span><span class="pr-card"><span class="pip pip-${cl}"></span>${p.card}</span><span class="pr-elo">${p.elo.toFixed(0)}</span>${badge}</div>`;
+    }).join('');
+    const bp=s.pickDetails.reduce((b,p)=>p.delta>b.delta?p:b,s.pickDetails[0]);
+    const wp=s.pickDetails.reduce((w,p)=>p.delta<w.delta?p:w,s.pickDetails[0]);
+    return `<div class="pcard"><div class="pc-top"><div class="pc-name">${s.name}</div><div class="pc-avg"><span class="big">${s.avg.toFixed(1)}</span><span class="lbl">avg elo</span></div></div><div class="pc-picks">${rows}</div><div class="colorbar">${bar}</div><div class="pc-footer"><div class="pc-stat"><div class="sv" style="color:var(--good)">+${bp.delta.toFixed(0)}</div><div class="sl">best delta</div></div><div class="pc-stat"><div class="sv" style="color:var(--danger)">${wp.delta.toFixed(0)}</div><div class="sl">worst delta</div></div><div class="pc-stat"><div class="sv">${s.stdDev.toFixed(0)}</div><div class="sl">std dev</div></div><div class="pc-stat"><div class="sv">${s.peak.toFixed(0)}</div><div class="sl">peak elo</div></div></div></div>`;
+  }).join('');
+}
+
+renderLB(); renderCurve(); renderInsights(); renderTab(); renderPlayerCards();
+</script>
+</body>
+</html>
